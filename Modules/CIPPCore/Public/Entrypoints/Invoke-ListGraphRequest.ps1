@@ -2,10 +2,9 @@
 function Invoke-ListGraphRequest {
     <#
     .FUNCTIONALITY
-    Entrypoint
-
+        Entrypoint
     .ROLE
-    Core.Read
+        CIPP.Core.Read
     #>
     [CmdletBinding()]
     param($Request, $TriggerMetadata)
@@ -15,15 +14,15 @@ function Invoke-ListGraphRequest {
     $Message = 'Accessed this API | Endpoint: {0}' -f $Request.Query.Endpoint
     Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APINAME -message $Message -Sev 'Debug'
 
-    $CippLink = ([System.Uri]$TriggerMetadata.Headers.referer).PathAndQuery
+    $CippLink = ([System.Uri]$TriggerMetadata.Headers.Referer).PathAndQuery
 
     $Parameters = @{}
     if ($Request.Query.'$filter') {
-        $Parameters.'$filter' = $Request.Query.'$filter'
+        $Parameters.'$filter' = $Request.Query.'$filter' -replace '%tenantid%', $env:TenantId
     }
 
     if (!$Request.Query.'$filter' -and $Request.Query.graphFilter) {
-        $Parameters.'$filter' = $Request.Query.graphFilter
+        $Parameters.'$filter' = $Request.Query.graphFilter -replace '%tenantid%', $env:TenantId
     }
 
     if ($Request.Query.'$select') {
@@ -81,7 +80,7 @@ function Invoke-ListGraphRequest {
     }
 
     if ($Request.Query.QueueNameOverride) {
-        $GraphRequestParams.QueueNameOverride = [System.Boolean]$Request.Query.QueueNameOverride
+        $GraphRequestParams.QueueNameOverride = [string]$Request.Query.QueueNameOverride
     }
 
     if ($Request.Query.ReverseTenantLookup) {
@@ -135,7 +134,7 @@ function Invoke-ListGraphRequest {
 
     if ($request.Query.Sort) {
         $GraphRequestData.Results = $GraphRequestData.Results | Sort-Object -Property $request.Query.Sort
-    } 
+    }
     $Outputdata = $GraphRequestData | ConvertTo-Json -Depth 20 -Compress
 
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
